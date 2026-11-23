@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A live, interactive walkthrough of the 8-phase DevOps lifecycle, deployed by its own CI/CD pipeline.">
+<title>DevOps Lifecycle | Live CI/CD Demo</title>
+<style>
+:root{
+  --ink:#0F0F0F;
+  --canvas:#F6F5F0;
+  --paper:#FFFFFF;
+  --dev:#D62828;
+  --ops:#F4C430;
+  --ok:#15803D;
+  --shadow:5px 5px 0 var(--ink);
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  font-family:var(--sans);
+  color:var(--ink);
+  line-height:1.5;
+  background-color:var(--canvas);
+  background-image:radial-gradient(#0F0F0F26 1px,transparent 1px);
+  background-size:20px 20px;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:24px 16px 40px}
+h1,h2,h3,p,ul,dl,dd{margin:0}
+ul{padding:0;list-style:none}
+:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+/* Masthead */
+.masthead{
+  display:flex;flex-wrap:wrap;gap:20px;align-items:center;
+  background:var(--paper);border:2px solid var(--ink);box-shadow:var(--shadow);
+  padding:20px;
+}
+.emblem{
+  flex:none;width:72px;height:72px;display:grid;place-items:center;
+  background:var(--ink);color:var(--ops);border:2px solid var(--ink);
+  font-size:3rem;line-height:1;font-weight:700;
+}
+.masthead-text{flex:1 1 260px;min-width:0}
+.eyebrow{font-family:var(--mono);font-size:.8rem;letter-spacing:.04em;margin-bottom:4px}
+h1{font-size:clamp(2rem,6vw,3.4rem);line-height:1.05;letter-spacing:-.02em;font-weight:800}
+.status-strip{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:.85rem;font-weight:700;
+  padding:6px 12px;border:2px solid var(--ink);background:var(--paper);
+}
+.badge.version{background:var(--ink);color:var(--paper)}
+.badge.passing{color:var(--ok);border-color:var(--ok)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ok);animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(21,128,61,.6)}
+  70%{box-shadow:0 0 0 9px rgba(21,128,61,0)}
+  100%{box-shadow:0 0 0 0 rgba(21,128,61,0)}
+}
+
+/* Section heads */
+.section-head{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;margin:40px 0 16px}
+.section-head h2{font-size:1.5rem;letter-spacing:-.01em}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-family:var(--mono);font-size:.8rem}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.swatch{width:16px;height:16px;border:2px solid var(--ink);display:inline-block}
+.swatch.dev{background:var(--dev)}
+.swatch.ops{background:var(--ops)}
+
+/* Stage track */
+.stages{display:grid;gap:14px;grid-template-columns:1fr}
+.stage{
+  display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;
+  font:inherit;color:var(--ink);background:var(--paper);
+  border:2px solid var(--ink);box-shadow:var(--shadow);
+  padding:14px;min-height:64px;
+  transition:transform .12s,box-shadow .12s,background-color .12s;
+}
+.stage:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink)}
+.stage-num{
+  flex:none;width:34px;height:34px;display:grid;place-items:center;
+  font-family:var(--mono);font-weight:700;border:2px solid var(--ink);color:var(--ink);
+}
+.stage.dev .stage-num{background:var(--dev);color:var(--paper)}
+.stage.ops .stage-num{background:var(--ops)}
+.stage-name{font-size:1.15rem;font-weight:800}
+.stage[aria-selected="true"]{transform:translate(5px,5px);box-shadow:0 0 0 var(--ink)}
+.stage.dev[aria-selected="true"]{background:var(--dev);color:var(--paper)}
+.stage.ops[aria-selected="true"]{background:var(--ops)}
+.stage[aria-selected="true"] .stage-num{background:var(--ink);color:var(--paper)}
+
+/* Spotlight */
+.spotlight{background:var(--paper);border:2px solid var(--ink);box-shadow:var(--shadow)}
+.detail .banner{
+  display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;
+  padding:12px 20px;border-bottom:2px solid var(--ink);
+  font-family:var(--mono);font-weight:700;font-size:.9rem;
+  background:var(--dev);color:var(--paper);
+}
+.detail[data-zone="ops"] .banner{background:var(--ops);color:var(--ink)}
+.detail-body{display:grid;gap:24px;padding:20px;grid-template-columns:1fr}
+.detail h2{font-size:clamp(1.6rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.01em;margin-bottom:12px}
+.detail-text{max-width:62ch;margin-bottom:16px}
+.callout{border:2px solid var(--ink);border-left-width:10px;border-left-color:var(--dev);padding:12px 16px;margin-bottom:20px;background:var(--canvas)}
+.detail[data-zone="ops"] .callout{border-left-color:var(--ops)}
+.callout strong{display:block;font-size:.95rem;margin-bottom:4px}
+.detail h3{font-size:.95rem;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips li{font-family:var(--mono);font-size:.85rem;font-weight:700;padding:4px 10px;border:2px solid var(--ink);background:var(--paper)}
+.telemetry{align-self:start;border:2px solid var(--ink);background:var(--canvas);padding:16px}
+.telemetry h3{font-size:.95rem;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--ink)}
+.telemetry dt{font-family:var(--mono);font-size:.75rem;margin-top:12px}
+.telemetry dd{font-weight:700}
+.controls{
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;
+  padding:16px 20px;border-top:2px solid var(--ink);
+}
+.btn{
+  font:inherit;font-weight:700;cursor:pointer;color:var(--ink);
+  background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);
+  padding:10px 18px;min-height:44px;
+  transition:transform .1s,box-shadow .1s;
+}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn[aria-pressed="true"]{background:var(--ok);color:var(--paper)}
+.hint{font-family:var(--mono);font-size:.75rem;margin-top:12px}
+
+/* Pillars */
+.pillars{display:grid;gap:20px;grid-template-columns:1fr}
+.pillar{background:var(--paper);border:2px solid var(--ink);box-shadow:var(--shadow);display:flex;flex-direction:column}
+.pillar::before{content:"";height:14px;border-bottom:2px solid var(--ink)}
+.pillar.ci::before{background:var(--dev)}
+.pillar.cd::before{background:var(--ops)}
+.pillar.cf::before{background:linear-gradient(90deg,var(--ops) 50%,var(--dev) 50%)}
+.pillar-body{padding:16px 20px 20px}
+.pillar h3{font-size:1.2rem;margin-bottom:8px}
+.flow{font-family:var(--mono);font-weight:700;font-size:.9rem;margin-bottom:10px}
+
+/* Footer */
+.site-footer{background:var(--ink);color:var(--paper);border-top:2px solid var(--ink)}
+.footer-inner{
+  max-width:1120px;margin:0 auto;padding:18px 16px;
+  display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;align-items:center;
+  font-family:var(--mono);font-size:.8rem;
+}
+#live-clock{color:var(--ops);font-weight:700}
+
+@media (min-width:520px){
+  .stages{grid-template-columns:repeat(2,1fr)}
+  .stage{flex-direction:column;align-items:flex-start;min-height:100px}
+}
+@media (min-width:760px){
+  .detail-body{grid-template-columns:1.7fr 1fr}
+  .pillars{grid-template-columns:repeat(3,1fr)}
+}
+@media (min-width:900px){
+  .stages{grid-template-columns:repeat(4,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  .dot{animation:none}
+  .stage,.btn{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="emblem" aria-hidden="true">∞</div>
+  <div class="masthead-text">
+    <p class="eyebrow">Live CI/CD demonstration</p>
+    <h1>DevOps Lifecycle</h1>
+  </div>
+  <div class="status-strip">
+    <!-- LIVE DEMO: change the version text below (for example v1.0.0 to v1.1.0), commit and push to trigger the pipeline on stage -->
+    <span class="badge version" id="app-version">v1.0.0</span>
+    <span class="badge passing" id="pipeline-status"><span class="dot" aria-hidden="true"></span>Pipeline passing</span>
+  </div>
+</header>
+
+<main>
+  <div class="section-head">
+    <h2>The eight-stage infinity track</h2>
+    <div class="legend" aria-label="Legend">
+      <span><i class="swatch dev"></i>Dev / CI (stages 1-4)</span>
+      <span><i class="swatch ops"></i>Ops / CD (stages 5-8)</span>
+    </div>
+  </div>
+
+  <div class="stages" id="stages-grid" role="tablist" aria-label="DevOps lifecycle stages">
+    <button class="stage dev" role="tab" id="tab-0" data-index="0" aria-selected="true" aria-controls="stage-detail" tabindex="0"><span class="stage-num">1</span><span class="stage-name">Plan</span></button>
+    <button class="stage dev" role="tab" id="tab-1" data-index="1" aria-selected="false" aria-controls="stage-detail" tabindex="-1"><span class="stage-num">2</span><span class="stage-name">Code</span></button>
+    <button class="stage dev" role="tab" id="tab-2" data-index="2" aria-selected="false" aria-controls="stage-detail" tabindex="-1"><span class="stage-num">3</span><span class="stage-name">Build</span></button>
+    <button class="stage dev" role="tab" id="tab-3" data-index="3" aria-selected="false" aria-controls="stage-detail" tabindex="-1"><span class="stage-num">4</span><span class="stage-name">Test</span></button>
+    <button class="stage ops" role="tab" id="tab-4" data-index="4" aria-selected="false" aria-controls="stage-detail" tabindex="-1"><span class="stage-num">5</span><span class="stage-name">Release</span></button>
+    <button class="stage ops" role="tab" id="tab-5" data-index="5" aria-selected="false" aria-controls="stage-detail" tabindex="-1"><span class="stage-num">6</span><span class="stage-name">Deploy</span></button>
+    <button class="stage ops" role="tab" id="tab-6" data-index="6" aria-selected="false" aria-controls="stage-detail" tabindex="-1"><span class="stage-num">7</span><span class="stage-name">Operate</span></button>
+    <button class="stage ops" role="tab" id="tab-7" data-index="7" aria-selected="false" aria-controls="stage-detail" tabindex="-1"><span class="stage-num">8</span><span class="stage-name">Monitor</span></button>
+  </div>
+
+  <div class="section-head">
+    <h2>Spotlight</h2>
+  </div>
+
+  <div class="spotlight">
+    <section class="detail" id="stage-detail" role="tabpanel" aria-live="polite" aria-labelledby="tab-0" data-zone="dev">
+      <div class="banner">
+        <span id="d-zone">Development / CI</span>
+        <span id="d-count">Stage 1 of 8</span>
+      </div>
+      <div class="detail-body">
+        <div>
+          <h2 id="d-title">1. Plan</h2>
+          <p class="detail-text" id="d-text"></p>
+          <div class="callout">
+            <strong>In This Live Demo</strong>
+            <p id="d-demo"></p>
+          </div>
+          <h3>Industry standard tools</h3>
+          <ul class="chips" id="d-tools"></ul>
+        </div>
+        <aside class="telemetry">
+          <h3>Stage Telemetry</h3>
+          <dl>
+            <dt>Pipeline Zone</dt>
+            <dd id="t-zone"></dd>
+            <dt>Automation Type</dt>
+            <dd id="t-auto"></dd>
+            <dt>Next Handoff</dt>
+            <dd id="t-next"></dd>
+          </dl>
+        </aside>
+      </div>
+    </section>
+    <div class="controls">
+      <button class="btn" id="prev-btn" type="button" aria-label="Previous Stage">Previous</button>
+      <button class="btn primary" id="autoplay-btn" type="button" aria-pressed="false">Auto-Walk: off</button>
+      <button class="btn" id="next-btn" type="button" aria-label="Next Stage">Next</button>
+    </div>
+  </div>
+  <p class="hint">Tip: use the left and right arrow keys to walk through the stages.</p>
+
+  <div class="section-head">
+    <h2>Core DevOps pillars</h2>
+  </div>
+  <div class="pillars">
+    <article class="pillar ci">
+      <div class="pillar-body">
+        <h3>Continuous Integration</h3>
+        <p class="flow">Code → Build → Test</p>
+        <p>Every push is merged, built and checked automatically, so a broken change is caught within minutes instead of days.</p>
+      </div>
+    </article>
+    <article class="pillar cd">
+      <div class="pillar-body">
+        <h3>Continuous Deployment</h3>
+        <p class="flow">Release → Deploy</p>
+        <p>A change that passes the quality gate goes live with no manual steps. Failing changes never reach users.</p>
+      </div>
+    </article>
+    <article class="pillar cf">
+      <div class="pillar-body">
+        <h3>Continuous Feedback</h3>
+        <p class="flow">Operate → Monitor → Plan</p>
+        <p>Live metrics and user signals flow back into planning, which closes the loop and starts the next cycle.</p>
+      </div>
+    </article>
+  </div>
+</main>
+
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>Pipeline: build-and-test, then deploy | Trigger: push to main | Gate: node test.js (10 checks)</span>
+    <span id="live-clock">--:--:--</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var STAGES = [
+    {
+      name: 'Plan', zone: 'dev', auto: 'Manual, team-driven', next: 'Code',
+      text: 'Teams turn goals into a backlog of small, testable changes. Planning decides what ships next and how success will be measured.',
+      demo: 'The scope of this project is three files: index.html, test.js and pipeline.yml. Every change you make on stage starts from that plan.',
+      tools: ['GitHub Issues', 'Jira']
+    },
+    {
+      name: 'Code', zone: 'dev', auto: 'Manual, tracked by Git', next: 'Build',
+      text: 'Developers write and review changes in small commits on version control, so every edit has an author, a reason and a way back.',
+      demo: 'You edit index.html locally and commit it with Git. Bumping the version badge in the masthead is the one-line change we ship live.',
+      tools: ['Git', 'GitHub', 'VS Code']
+    },
+    {
+      name: 'Build', zone: 'dev', auto: 'Automated on every push', next: 'Test',
+      text: 'The source is packaged into one repeatable artifact. The same input always produces the same output, on any machine.',
+      demo: 'The site is plain HTML, so the build step simply packages the repository folder as a Pages artifact on a fresh GitHub Actions runner.',
+      tools: ['Docker', 'GitHub Actions', 'npm']
+    },
+    {
+      name: 'Test', zone: 'dev', auto: 'Fully automated quality gate', next: 'Release',
+      text: 'Automated checks prove the change is safe before anyone sees it. A failing test stops the line.',
+      demo: 'node test.js runs 10 checks against index.html. If any check fails it exits with code 1 and the pipeline stops before deployment.',
+      tools: ['Node.js', 'GitHub Actions', 'Jest']
+    },
+    {
+      name: 'Release', zone: 'ops', auto: 'Automated, gated by tests', next: 'Deploy',
+      text: 'A verified build gets a version number and is approved for delivery. Semantic Versioning tells users how big the change is.',
+      demo: 'The badge in the masthead holds the release version. Test 4 rejects anything that is not a valid vX.Y.Z, so a malformed version cannot ship.',
+      tools: ['Semantic Versioning', 'GitHub Releases']
+    },
+    {
+      name: 'Deploy', zone: 'ops', auto: 'Continuous deployment', next: 'Operate',
+      text: 'The release goes live in production without manual steps, which makes shipping small, frequent and low risk.',
+      demo: 'Job 2 deploys the artifact to the github-pages environment with actions/deploy-pages and prints the live URL.',
+      tools: ['Kubernetes', 'GitHub Pages', 'Helm']
+    },
+    {
+      name: 'Operate', zone: 'ops', auto: 'Platform managed', next: 'Monitor',
+      text: 'The running service has to stay available, secure and fast. Operations owns capacity, configuration and incident response.',
+      demo: 'GitHub Pages serves this site from a CDN, so there are no servers to patch. In larger systems, Docker containers run on Kubernetes at this stage.',
+      tools: ['Kubernetes', 'Docker', 'Terraform']
+    },
+    {
+      name: 'Monitor', zone: 'ops', auto: 'Continuous telemetry', next: 'Plan (feedback loop)',
+      text: 'Metrics, logs and user feedback show how the release behaves in the real world and feed the next round of planning.',
+      demo: 'The pipeline status badge and the footer clock stand in for live health signals. Production systems scrape real metrics with Prometheus.',
+      tools: ['Prometheus', 'Grafana']
+    }
+  ];
+
+  var ZONES = { dev: 'Development / CI', ops: 'Operations / CD' };
+  var current = 0;
+  var timer = null;
+
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('#stages-grid .stage'));
+  var detail = document.getElementById('stage-detail');
+  var autoBtn = document.getElementById('autoplay-btn');
+
+  function setText(id, value) {
+    document.getElementById(id).textContent = value;
+  }
+
+  function render(index) {
+    var s = STAGES[index];
+    current = index;
+
+    tabs.forEach(function (tab, i) {
+      var selected = i === index;
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+      tab.setAttribute('tabindex', selected ? '0' : '-1');
+    });
+
+    detail.setAttribute('data-zone', s.zone);
+    detail.setAttribute('aria-labelledby', 'tab-' + index);
+
+    setText('d-zone', ZONES[s.zone]);
+    setText('d-count', 'Stage ' + (index + 1) + ' of 8');
+    setText('d-title', (index + 1) + '. ' + s.name);
+    setText('d-text', s.text);
+    setText('d-demo', s.demo);
+    setText('t-zone', ZONES[s.zone]);
+    setText('t-auto', s.auto);
+    setText('t-next', s.next);
+
+    var list = document.getElementById('d-tools');
+    list.textContent = '';
+    s.tools.forEach(function (tool) {
+      var li = document.createElement('li');
+      li.textContent = tool;
+      list.appendChild(li);
+    });
+  }
+
+  function go(delta, moveFocus) {
+    var next = (current + delta + STAGES.length) % STAGES.length;
+    render(next);
+    if (moveFocus) { tabs[next].focus(); }
+  }
+
+  function stopAuto() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    autoBtn.setAttribute('aria-pressed', 'false');
+    autoBtn.textContent = 'Auto-Walk: off';
+  }
+
+  function startAuto() {
+    timer = setInterval(function () { go(1, false); }, 3000);
+    autoBtn.setAttribute('aria-pressed', 'true');
+    autoBtn.textContent = 'Auto-Walk: on (pause)';
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      stopAuto();
+      render(Number(tab.getAttribute('data-index')));
+    });
+  });
+
+  document.getElementById('prev-btn').addEventListener('click', function () { stopAuto(); go(-1, false); });
+  document.getElementById('next-btn').addEventListener('click', function () { stopAuto(); go(1, false); });
+  autoBtn.addEventListener('click', function () { if (timer === null) { startAuto(); } else { stopAuto(); } });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) { return; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); stopAuto(); go(1, true); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); stopAuto(); go(-1, true); }
+  });
+
+  function tick() {
+    document.getElementById('live-clock').textContent = new Date().toLocaleString();
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  render(0);
+})();
+</script>
+</body>
+</html>
